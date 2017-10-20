@@ -1,5 +1,6 @@
 import re
 import boto3
+import botocore
 import termcolor
 import requests
 
@@ -9,8 +10,7 @@ from collections import defaultdict
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
 sns = boto3.resource('sns')
-platform_endpoint = sns.PlatformEndpoint('[arn:aws:sns:eu-west-1:051785622050:AWSTidy]')
-
+platform_endpoint = sns.PlatformEndpoint('[arn:aws:sns:eu-west-1:051785622050:S3Monitor]')
 
 
 explained = {
@@ -62,49 +62,39 @@ def scan_bucket_urls(bucket_name):
 
 
 def lambda_handler(event, context):
+    buckets = s3.buckets.all()
+    try:
+        bucketcount = 0
+        for bucket in buckets:
+            location = get_location(bucket.name)
+            print(SEP)
+            acl = bucket.Acl()
+            public, grants = check_acl(acl)
 
-        buckets = s3.buckets.all()
-        try:
-            bucketcount = 0
-            for bucket in buckets:
-                location = get_location(bucket.name)
-                print(SEP)
-                acl = bucket.Acl()
-                public, grants = check_acl(acl)
-
-                if public:
-                    bucket_line = termcolor.colored(
-                        bucket.name, 'blue', attrs=['bold'])
-                    public_ind = termcolor.colored(
-                        'PUBLIC!', 'red', attrs=['bold'])
-                    termcolor.cprint('Bucket {}: {}'.format(
-                        bucket_line, public_ind))
-                    print('Location: {}'.format(location))
-                    if grants:
-                        for grant in grants:
-                            permissions = grants[grant]
-                            perm_to_print = []
-                            for perm in permissions:
-                                perm_to_print.append(explained[perm])
-                            termcolor.cprint('Permission: {} by {}'.format(
-                                termcolor.colored(
-                                    ' & '.join(perm_to_print), 'red'),
-                                termcolor.colored(groups_to_check[grant], 'red')))
+            if public:
+                bucket_line = termcolor.colored(bucket.name, 'blue', attrs=['bold'])
+                public_ind = termcolor.colored('PUBLIC!', 'red', attrs=['bold'])
+                termcolor.cprint('Bucket {}: {}'.format(bucket_line, public_ind))
+                print('Location: {}'.format(location))
+                if grants:
+                    for grant in grants:
+                        permissions = grants[grant]
+                        perm_to_print = [explained[perm] for perm in permissions]
+                        termcolor.cprint('Permission: {} by {}'.format(termcolor.colored(' & '.join(perm_to_print), 'red'),termcolor.colored(groups_to_check[grant], 'red')))
                     urls = scan_bucket_urls(bucket.name)
                     print('URLs:')
                     if urls:
                         print('\n'.join(urls))
                     else:
                         print('Nothing found')
-                    else:
-                        bucket_line = termcolor.colored(
-                            bucket.name, 'blue', attrs=['bold'])
-                        public_ind = termcolor.colored(
-                            'Not public', 'green', attrs=['bold'])
-                        termcolor.cprint('Bucket {}: {}'.format(
-                            bucket_line, public_ind))
-                        print('Location: {}'.format(location))
-                    bucketcount += 1
+                else:
+                    bucket_line = termcolor.colored(bucket.name, 'blue', attrs=['bold'])
+                    public_ind = termcolor.colored('Not public', 'green', attrs=['bold'])
+                    termcolor.cprint('Bucket {}: {}'.format(bucket_line, public_ind))
+                    print('Location: {}'.format(location))
+                bucketcount += 1
                 if not bucketcount:
                     print('No buckets found')
                     termcolor.cprint(termcolor.colored('You are safe', 'green'))
+    except botocore.exceptions.ClientError as e:
+        pass

@@ -75,10 +75,8 @@ if __name__ == '__main__':
     else:
         access_key = raw_input('Enter your AWS access key ID: ')
         secret_key = raw_input('Enter your AWS secret key: ')
-        s3 = boto3.resource('s3', aws_access_key_id=access_key,
-                            aws_secret_access_key=secret_key)
-        s3_client = boto3.client('s3', aws_access_key_id=access_key,
-                                 aws_secret_access_key=secret_key)
+        s3 = boto3.resource('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+        s3_client = boto3.client('s3', aws_access_key_id=access_key,aws_secret_access_key=secret_key)
     bucket_list = []
     buckets = s3.buckets.all()
     try:
@@ -90,22 +88,15 @@ if __name__ == '__main__':
             public, grants = check_acl(acl)
 
             if public:
-                bucket_line = termcolor.colored(
-                    bucket.name, 'blue', attrs=['bold'])
-                public_ind = termcolor.colored(
-                    'PUBLIC!', 'red', attrs=['bold'])
-                termcolor.cprint('Bucket {}: {}'.format(
-                    bucket_line, public_ind))
+                bucket_line = termcolor.colored(bucket.name, 'blue', attrs=['bold'])
+                public_ind = termcolor.colored('PUBLIC!', 'red', attrs=['bold'])
+                termcolor.cprint('Bucket {}: {}'.format(bucket_line, public_ind))
                 print('Location: {}'.format(location))
                 if grants:
                     for grant in grants:
                         permissions = grants[grant]
-                        perm_to_print = [explained[perm]
-                                         for perm in permissions]
-                        termcolor.cprint('Permission: {} by {}'.format(
-                            termcolor.colored(
-                                ' & '.join(perm_to_print), 'red'),
-                            termcolor.colored(groups_to_check[grant], 'red')))
+                        perm_to_print = [explained[perm] for perm in permissions]
+                        termcolor.cprint('Permission: {} by {}'.format(termcolor.colored(' & '.join(perm_to_print), 'red'),termcolor.colored(groups_to_check[grant], 'red')))
                 urls = scan_bucket_urls(bucket.name)
                 print('URLs:')
                 if urls:
@@ -113,12 +104,9 @@ if __name__ == '__main__':
                 else:
                     print('Nothing found')
             else:
-                bucket_line = termcolor.colored(
-                    bucket.name, 'blue', attrs=['bold'])
-                public_ind = termcolor.colored(
-                    'Not public', 'green', attrs=['bold'])
-                termcolor.cprint('Bucket {}: {}'.format(
-                    bucket_line, public_ind))
+                bucket_line = termcolor.colored(bucket.name, 'blue', attrs=['bold'])
+                public_ind = termcolor.colored('Not public', 'green', attrs=['bold'])
+                termcolor.cprint('Bucket {}: {}'.format(bucket_line, public_ind))
                 print('Location: {}'.format(location))
             bucketcount += 1
         if not bucketcount:
