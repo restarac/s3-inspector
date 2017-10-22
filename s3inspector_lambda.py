@@ -1,7 +1,6 @@
 import re
 import boto3
 import botocore
-import termcolor
 import requests
 
 from collections import defaultdict
@@ -72,15 +71,15 @@ def lambda_handler(event, context):
             public, grants = check_acl(acl)
 
             if public:
-                bucket_line = termcolor.colored(bucket.name, 'blue', attrs=['bold'])
-                public_ind = termcolor.colored('PUBLIC!', 'red', attrs=['bold'])
-                termcolor.cprint('Bucket {}: {}'.format(bucket_line, public_ind))
+                bucket_line = bucket.name
+                public_ind = 'PUBLIC!'
+                print('Bucket {}: {}'.format(bucket_line, public_ind))
                 print('Location: {}'.format(location))
                 if grants:
                     for grant in grants:
                         permissions = grants[grant]
                         perm_to_print = [explained[perm] for perm in permissions]
-                        termcolor.cprint('Permission: {} by {}'.format(termcolor.colored(' & '.join(perm_to_print), 'red'),termcolor.colored(groups_to_check[grant], 'red')))
+                        print('Permission: {} by {}'.format(' & '.join(perm_to_print),(groups_to_check[grant])
                     urls = scan_bucket_urls(bucket.name)
                     print('URLs:')
                     if urls:
@@ -88,13 +87,14 @@ def lambda_handler(event, context):
                     else:
                         print('Nothing found')
                 else:
-                    bucket_line = termcolor.colored(bucket.name, 'blue', attrs=['bold'])
-                    public_ind = termcolor.colored('Not public', 'green', attrs=['bold'])
-                    termcolor.cprint('Bucket {}: {}'.format(bucket_line, public_ind))
+                    public_ind = 'Not Public'
+                    print('Bucket {}: {}'.format(bucket_line, public_ind))
                     print('Location: {}'.format(location))
                 bucketcount += 1
                 if not bucketcount:
                     print('No buckets found')
-                    termcolor.cprint(termcolor.colored('You are safe', 'green'))
+                    print('You are safe')
     except botocore.exceptions.ClientError as e:
-        pass
+        print('Unhandled Error')
+
+    return 'S3Monitor Run'
