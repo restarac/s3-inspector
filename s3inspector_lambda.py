@@ -1,6 +1,4 @@
-import os
 import re
-import sys
 import boto3
 import botocore
 import requests
@@ -51,7 +49,6 @@ def scan_bucket_urls(bucket_name):
 
 def lambda_handler(event,context):
     
-#if __name__ == '__main__':
     SEP = '-' * 40
     explained = {
         'READ': 'readable',
