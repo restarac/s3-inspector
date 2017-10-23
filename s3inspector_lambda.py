@@ -2,11 +2,15 @@ import re
 import boto3
 import botocore
 import botocore.vendored.requests as requests
-
+from datetime import datetime, timedelta
 from collections import defaultdict
 
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
+sns = boto3.resource('sns')
+
+platform_endpoint = sns.PlatformEndpoint('[arn:aws:sns:eu-west-1:051785622050:S3Monitor')
+today = datetime.now() + timedelta(days=1)
 
 groups_to_check = {
     'http://acs.amazonaws.com/groups/global/AllUsers': 'Everyone',
@@ -60,43 +64,46 @@ def lambda_handler(event,context):
     
     bucket_list = []
     buckets = s3.buckets.all()
+    report = open('/tmp/report.txt', 'a')
     try:
         bucketcount = 0
         for bucket in buckets:
             location = get_location(bucket.name)
-            print(SEP)
+            print >>report, (SEP)
             acl = bucket.Acl()
             public, grants = check_acl(acl)
 
             if public:
                 public_ind = 'PUBLIC!'
-                print('Bucket {}: {}'.format(bucket.name, public_ind))
-                print('Location: {}'.format(location))
+                print >>report, ('Bucket {}: {}'.format(bucket.name, public_ind))
+                print >>report, ('Location: {}'.format(location))
                 if grants:
                     for grant in grants:
                         permissions = grants[grant]
                         perm_to_print = [explained[perm] for perm in permissions]
-                        print('Permission: {} by {}'.format(' & '.join(perm_to_print),(groups_to_check[grant])))
+                        print >>report, ('Permission: {} by {}'.format(' & '.join(perm_to_print),(groups_to_check[grant])))
                 urls = scan_bucket_urls(bucket.name)
-                print('URLs:')
+                print >>report, ('URLs:')
                 if urls:
-                    print('\n'.join(urls))
+                    print >>report, ('\n'.join(urls))
                 else:
-                    print('Nothing found')
+                    print >>report, ('Nothing found')
             else:
                 public_ind = 'Not public'
-                print('Bucket {}: {}'.format(bucket.name, public_ind))
-                print('Location: {}'.format(location))
+                print >>report, ('Bucket {}: {}'.format(bucket.name, public_ind))
+                print >>report, ('Location: {}'.format(location))
             bucketcount += 1
+        report.close()
         if not bucketcount:
-            print('No buckets found')
-            print('You are safe')
+            print >>report, ('No buckets found')
+            print >>report, ('You are safe')
+            report.close()
     except botocore.exceptions.ClientError as e:
         msg = str(e)
         if 'AccessDenied' in msg:
-            print('''Access Denied
+            print >>report, ('''Access Denied
 I need permission to access S3
-Check if the Lambda Execution Policy at least has AmazonS3ReadOnlyAccess policy attached
+Check if the Lambda Execution Policy at least has AmazonS3ReadOnlyAccess, SNS Publish & Lambda Execution policies attached
 
 To find the list of policies attached to your user, perform these steps:
 1. Go to IAM (https://console.aws.amazon.com/iam/home)
@@ -104,6 +111,21 @@ To find the list of policies attached to your user, perform these steps:
 3. Click the role lambda is running with 
 4. Here it is
 ''')
+            report.close()
         else:
-            print('''{}
+            print >>report, ('''{}
 Something has gone very wrong, please check the Cloudwatch Logs Stream for further details'''.format(msg))
+            report.close()
+
+
+    report = open('/tmp/report.txt', 'r') 
+    rts = report.read()
+    report.close()
+
+    platform_endpoint.publish(
+        Message=rts,
+        Subject='S3 Monitor Report: ' +str(today),
+        MessageStructure='string',
+    )
+
+    print rts
