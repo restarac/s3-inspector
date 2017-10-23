@@ -51,7 +51,22 @@ This also gives us a very simple route on incorporating other AWS services in pl
 
 ## Lambda Setup & Prerequisites
 
-Rather than a IAM user, we need a role that permits lambda execution as well as read-only access to S3 buckets. Once done we can now create the lambda function
+Rather than a IAM user, we need a role that permits lambda execution as well as read-only access to S3 buckets and the ability to publish to SNS and query STS (specifically get_caller_identity). First we need to create an SNS endpoint.
+
+  - Go to the SNS console (https://console.aws.amazon.com/sns/v2/home)
+  - Select along the sidebar 'Topics'
+  - In the topics screen, click 'Create New Topic'
+  - In the popup, add the name (I've used S3Monitor, update the function if you change it) and description
+  - Click 'Create Topic'
+  - When the topic finishes creation, enter the topic by clicking on the ARN
+  - Click 'Create Subscription'
+  - In the popup, change the protocol to 'EMail'
+  - Enter the email address of whoever will be sent the reports in the 'Endpoint'
+  - Click 'Create subscription'
+  - Select the subscription and click 'Request confirmations'
+  - In the receivers email client, confirm the subscription via the link provided.
+
+Once done we can now create the lambda function
 
   - Go to the lambda console (https://console.aws.amazon.com/lambda/home)
   - Click on 'Create Function'
@@ -67,6 +82,3 @@ Rather than a IAM user, we need a role that permits lambda execution as well as 
 
 You can now run the function with an empty test event, or configure a trigger for the function.
 
-## Todo & Limitations
-
-The report is currently outputted into the console/logs of the function, the next release will include an SNS event being published containing the report.
