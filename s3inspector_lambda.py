@@ -1,7 +1,7 @@
 import re
 import boto3
 import botocore
-import requests
+import botocore.vendored.requests as requests
 
 from collections import defaultdict
 
