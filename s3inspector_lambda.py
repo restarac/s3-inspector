@@ -7,6 +7,13 @@ import requests
 
 from collections import defaultdict
 
+s3 = boto3.resource('s3')
+s3_client = boto3.client('s3')
+
+groups_to_check = {
+    'http://acs.amazonaws.com/groups/global/AllUsers': 'Everyone',
+    'http://acs.amazonaws.com/groups/global/AuthenticatedUsers': 'Authenticated AWS users'
+}
 
 def check_acl(acl):
     dangerous_grants = defaultdict(list)
@@ -53,12 +60,7 @@ def lambda_handler(event,context):
         'WRITE_ACP': 'permissions writeable',
         'FULL_CONTROL': 'Full Control'
     }
-    groups_to_check = {
-        'http://acs.amazonaws.com/groups/global/AllUsers': 'Everyone',
-        'http://acs.amazonaws.com/groups/global/AuthenticatedUsers': 'Authenticated AWS users'
-    }
-    s3 = boto3.resource('s3')
-    s3_client = boto3.client('s3')
+    
     bucket_list = []
     buckets = s3.buckets.all()
     try:
@@ -108,4 +110,3 @@ To find the list of policies attached to your user, perform these steps:
         else:
             print('''{}
 Something has gone very wrong, please check the Cloudwatch Logs Stream for further details'''.format(msg))
-
