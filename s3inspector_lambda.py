@@ -8,8 +8,11 @@ from collections import defaultdict
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
 sns = boto3.resource('sns')
+sts = boto3.client('sts')
 
-platform_endpoint = sns.PlatformEndpoint('[arn:aws:sns:eu-west-1:051785622050:S3Monitor')
+account_id=sts.get_caller_identity()["Account"]
+
+platform_endpoint = sns.PlatformEndpoint('arn:aws:sns:eu-west-1:'+account_id+':S3Monitor')
 today = datetime.now() + timedelta(days=1)
 
 groups_to_check = {
