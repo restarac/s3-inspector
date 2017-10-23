@@ -1,31 +1,11 @@
+import os
 import re
+import sys
 import boto3
 import botocore
 import requests
 
 from collections import defaultdict
-
-
-s3 = boto3.resource('s3')
-s3_client = boto3.client('s3')
-sns = boto3.resource('sns')
-platform_endpoint = sns.PlatformEndpoint('[arn:aws:sns:eu-west-1:051785622050:S3Monitor]')
-
-
-explained = {
-    'READ': 'readable',
-    'WRITE': 'writable',
-    'READ_ACP': 'permissions readable',
-    'WRITE_ACP': 'permissions writeable',
-    'FULL_CONTROL': 'Full Control'
-}
-
-groups_to_check = {
-    'http://acs.amazonaws.com/groups/global/AllUsers': 'Everyone',
-    'http://acs.amazonaws.com/groups/global/AuthenticatedUsers': 'Authenticated AWS users'
-}
-
-SEP = '-' * 40
 
 
 def check_acl(acl):
@@ -39,10 +19,12 @@ def check_acl(acl):
 
 
 def get_location(bucket_name):
-    loc = s3_client.get_bucket_location(Bucket=bucket_name)["LocationConstraint"]
+    loc = s3_client.get_bucket_location(
+        Bucket=bucket_name)['LocationConstraint']
     if loc is None:
         loc = 'None(probably North Virginia)'
     return loc
+
 
 def scan_bucket_urls(bucket_name):
     domain = 's3.amazonaws.com'
@@ -60,7 +42,24 @@ def scan_bucket_urls(bucket_name):
     return access_urls
 
 
-def lambda_handler(event, context):
+def lambda_handler(event,context):
+    
+#if __name__ == '__main__':
+    SEP = '-' * 40
+    explained = {
+        'READ': 'readable',
+        'WRITE': 'writable',
+        'READ_ACP': 'permissions readable',
+        'WRITE_ACP': 'permissions writeable',
+        'FULL_CONTROL': 'Full Control'
+    }
+    groups_to_check = {
+        'http://acs.amazonaws.com/groups/global/AllUsers': 'Everyone',
+        'http://acs.amazonaws.com/groups/global/AuthenticatedUsers': 'Authenticated AWS users'
+    }
+    s3 = boto3.resource('s3')
+    s3_client = boto3.client('s3')
+    bucket_list = []
     buckets = s3.buckets.all()
     try:
         bucketcount = 0
@@ -71,30 +70,42 @@ def lambda_handler(event, context):
             public, grants = check_acl(acl)
 
             if public:
-                bucket_line = bucket.name
                 public_ind = 'PUBLIC!'
-                print('Bucket {}: {}'.format(bucket_line, public_ind))
+                print('Bucket {}: {}'.format(bucket.name, public_ind))
                 print('Location: {}'.format(location))
                 if grants:
                     for grant in grants:
                         permissions = grants[grant]
                         perm_to_print = [explained[perm] for perm in permissions]
-                        print('Permission: {} by {}'.format(' & '.join(perm_to_print),(groups_to_check[grant])
-                    urls = scan_bucket_urls(bucket.name)
-                    print('URLs:')
-                    if urls:
-                        print('\n'.join(urls))
-                    else:
-                        print('Nothing found')
+                        print('Permission: {} by {}'.format(' & '.join(perm_to_print),(groups_to_check[grant])))
+                urls = scan_bucket_urls(bucket.name)
+                print('URLs:')
+                if urls:
+                    print('\n'.join(urls))
                 else:
-                    public_ind = 'Not Public'
-                    print('Bucket {}: {}'.format(bucket_line, public_ind))
-                    print('Location: {}'.format(location))
-                bucketcount += 1
-                if not bucketcount:
-                    print('No buckets found')
-                    print('You are safe')
+                    print('Nothing found')
+            else:
+                public_ind = 'Not public'
+                print('Bucket {}: {}'.format(bucket.name, public_ind))
+                print('Location: {}'.format(location))
+            bucketcount += 1
+        if not bucketcount:
+            print('No buckets found')
+            print('You are safe')
     except botocore.exceptions.ClientError as e:
-        print('Unhandled Error')
+        msg = str(e)
+        if 'AccessDenied' in msg:
+            print('''Access Denied
+I need permission to access S3
+Check if the Lambda Execution Policy at least has AmazonS3ReadOnlyAccess policy attached
 
-    return 'S3Monitor Run'
+To find the list of policies attached to your user, perform these steps:
+1. Go to IAM (https://console.aws.amazon.com/iam/home)
+2. Click "Roles" on the left hand side menu
+3. Click the role lambda is running with 
+4. Here it is
+''')
+        else:
+            print('''{}
+Something has gone very wrong, please check the Cloudwatch Logs Stream for further details'''.format(msg))
+

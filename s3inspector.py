@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import termcolor
 
 from collections import defaultdict
 
