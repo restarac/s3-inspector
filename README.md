@@ -51,19 +51,7 @@ This also gives us a very simple route on incorporating other AWS services in pl
 
 ## Lambda Setup & Prerequisites
 
-Rather than a IAM user, we need a role that permits lambda execution as well as read-only access to S3 buckets. We also have to manually install the requests module
-
-  - Create a directory called S3Inspector
-  - cd into the directory
-  - Copy the lambda function into the directory and then run the following command to install the module(s)
-    
-```bash
-pip install requests -t .
-```
-
-  - Create a zipfile containing all the files and directories with everything in the root of the zipfile.
-
-We can now create the lambda function
+Rather than a IAM user, we need a role that permits lambda execution as well as read-only access to S3 buckets. Once done we can now create the lambda function
 
   - Go to the lambda console (https://console.aws.amazon.com/lambda/home)
   - Click on 'Create Function'
@@ -72,10 +60,9 @@ We can now create the lambda function
   - Apply the role created above
   - Click 'Create Function'
   - On the configuration page
-    - Change the Code Entry Type to 'Upload from Zip'
     - Change the Runtime to 'Python 2.7'
     - Change the Handler to 's3inspector_lambda.lambda_handler'
-  - Click 'Upload' and upload your zipfile
+  - Copy & Paste the contents of the lambda function file into the onscreen editor & click 'Save'
   - Increase the timeout of the function to something suitable for the number of S3 buckets in the account (I'm using 1 minute and 128Mb)
 
 You can now run the function with an empty test event, or configure a trigger for the function.
