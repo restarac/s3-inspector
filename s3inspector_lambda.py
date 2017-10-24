@@ -1,6 +1,7 @@
 import re
 import boto3
 import botocore
+import os
 import botocore.vendored.requests as requests
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -53,6 +54,12 @@ def scan_bucket_urls(bucket_name):
             access_urls.append(url)
     return access_urls
 
+def tidy_tmp():
+    try:
+        os.remove('/tmp/report.txt')
+    except OSError:
+        pass
+
 
 def lambda_handler(event,context):
     
@@ -67,6 +74,7 @@ def lambda_handler(event,context):
     
     bucket_list = []
     buckets = s3.buckets.all()
+    tidy_tmp()
     report = open('/tmp/report.txt', 'a')
     try:
         bucketcount = 0
@@ -131,4 +139,4 @@ Something has gone very wrong, please check the Cloudwatch Logs Stream for furth
         MessageStructure='string',
     )
 
-    print rts
+    tidy_tmp()
