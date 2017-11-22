@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import warnings
 from os.path import expanduser
 from collections import defaultdict
 
@@ -68,6 +69,7 @@ def scan_bucket_urls(bucket_name):
         "https://{}/{}".format(domain, bucket_name),
         "http://{}/{}".format(domain, bucket_name)
     ]
+    warnings.filterwarnings("ignore")
     for url in urls_to_scan:
         content = requests.get(url).text
         if not re.search("Access Denied", content):
