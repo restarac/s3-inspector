@@ -1,6 +1,9 @@
-# S3 Inspector
+<p align="center">
+   <img alt="S3 Inspector" src="https://github.com/kromtech/s3-inspector/blob/logo/logo.png" width="400"/>
+</p>
+
 Tool to check AWS S3 bucket permissions.
-**Compatible** with Linux/MacOS, python2 and python3
+**Compatible** with Linux, MacOS and Windows, python 2.7 and 3
 ## What it does
  - Checks all your buckets for public access
  - For every bucket gives you the report with:
