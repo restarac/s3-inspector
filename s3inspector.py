@@ -7,9 +7,10 @@ from collections import defaultdict
 
 def check_acl(acl):
     """
-    Check if the Access Control List is public
-    :param acl:
-    :return:
+    Check if the Access Control List is public.
+
+    :param acl: Acl instance that describes bucket's.
+    :return: Bucket's public indicator and dangerous grants parsed from acl instance.
     """
     dangerous_grants = defaultdict(list)
     for grant in acl.grants:
@@ -22,10 +23,10 @@ def check_acl(acl):
 
 def get_location(bucket_name):
     """
-    Return the bucket location
+    Return the bucket location.
 
-    :param bucket_name:
-    :return:
+    :param bucket_name: Name of the bucket.
+    :return: String with bucket's region.
     """
     loc = s3_client.get_bucket_location(
             Bucket=bucket_name)["LocationConstraint"]
@@ -38,8 +39,7 @@ def install_and_import(pkg):
     """
     Install latest versions of required packages
 
-    :param pkg:
-    :return:
+    :param pkg: Package name.
     """
     import importlib
     try:
@@ -56,8 +56,8 @@ def scan_bucket_urls(bucket_name):
     Scan standard bucket urls.
     Return only publicly accessible urls.
 
-    :param bucket_name:
-    :return:
+    :param bucket_name: Name of the bucket.
+    :return: List that contains publicly accessible urls.
     """
 
     domain = "s3.amazonaws.com"
