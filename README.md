@@ -3,6 +3,7 @@
 </p>
 
 Tool to check AWS S3 bucket permissions.
+
 **Compatible** with Linux, MacOS and Windows, python 2.7 and 3
 ## What it does
  - Checks all your buckets for public access
