@@ -1,7 +1,7 @@
 import os
 import re
 import sys
-
+from os.path import expanduser
 from collections import defaultdict
 
 
@@ -93,8 +93,8 @@ if __name__ == "__main__":
         "http://acs.amazonaws.com/groups/global/AllUsers": "Everyone",
         "http://acs.amazonaws.com/groups/global/AuthenticatedUsers": "Authenticated AWS users"
     }
-    if os.path.exists("{}/.aws/credentials".format(os.environ["HOME"])) or os.path.exists(
-            "{}/.aws/config".format(os.environ["HOME"])):
+    if os.path.exists(os.path.join(expanduser("~"), ".aws", "credentials")) or os.path.exists(
+            os.path.join(expanduser("~"), ".aws", "config")):
         profile_name = raw_input("Enter your AWS profile name [default]: ") or "default"
         session = boto3.Session(profile_name=profile_name)
         s3 = session.resource("s3")
