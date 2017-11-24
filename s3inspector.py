@@ -240,7 +240,7 @@ def lambda_handler(event, context):
 
     report_path = "/tmp/report.txt"
     tidy(report_path)
-    s3, s3_client = get_s3_obj(True)
+    s3, s3_client = get_s3_obj(is_lambda=True)
     analyze_buckets(s3, s3_client, report_path)
     send_report(report_path)
     tidy(report_path)
