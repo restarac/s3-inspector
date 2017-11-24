@@ -25,14 +25,14 @@ GROUPS_TO_CHECK = {
 }
 
 
-def get_s3_obj(caller=""):
+def get_s3_obj(is_lambda=False):
     """
     Gets and returns s3 resource and client.
 
-    :param caller: If not empty - defines that code has been launched as lambda.
+    :param is_lambda: If True - defines that code has been launched as lambda.
     :return: s3 resource and client instances.
     """
-    if caller:
+    if is_lambda:
         s3 = boto3.resource("s3")
         s3_client = boto3.client("s3")
     else:
@@ -135,14 +135,14 @@ def scan_bucket_urls(bucket_name):
     return access_urls
 
 
-def add_to_output(msg, path=""):
+def add_to_output(msg, path=None):
     """
     Displays msg or writes it to file.
 
     :param msg: Message to handle.
     :param path: Path to lambda report file.
     """
-    if path:
+    if path is not None:
         with open(path, "a") as f:
             f.write(msg + '\n')
     else:
@@ -240,7 +240,7 @@ def lambda_handler(event, context):
 
     report_path = "/tmp/report.txt"
     tidy(report_path)
-    s3, s3_client = get_s3_obj("lambda")
+    s3, s3_client = get_s3_obj(True)
     analyze_buckets(s3, s3_client, report_path)
     send_report(report_path)
     tidy(report_path)
