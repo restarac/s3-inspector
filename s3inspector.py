@@ -135,7 +135,7 @@ def scan_bucket_urls(bucket_name):
     return access_urls
 
 
-def add_to_output(msg, path=None):
+def add_to_output(msg, path):
     """
     Displays msg or writes it to file.
 
@@ -149,7 +149,7 @@ def add_to_output(msg, path=None):
         termcolor.cprint(msg)
 
 
-def analyze_buckets(s3, s3_client, report_path=""):
+def analyze_buckets(s3, s3_client, report_path=None):
     """
     Analyses buckets permissions. Sends results to defined output.
 
@@ -275,47 +275,47 @@ def resolve_exception(exception, report_path):
     if report_path:
         if "AccessDenied" in msg:
             add_to_output("""Access Denied
-        I need permission to access S3
-        Check if the Lambda Execution Policy at least has AmazonS3ReadOnlyAccess, SNS Publish & Lambda Execution policies attached
+I need permission to access S3
+Check if the Lambda Execution Policy at least has AmazonS3ReadOnlyAccess, SNS Publish & Lambda Execution policies attached
 
-        To find the list of policies attached to your user, perform these steps:
-        1. Go to IAM (https://console.aws.amazon.com/iam/home)
-        2. Click "Roles" on the left hand side menu
-        3. Click the role lambda is running with 
-        4. Here it is
-        """, report_path)
+To find the list of policies attached to your user, perform these steps:
+1. Go to IAM (https://console.aws.amazon.com/iam/home)
+2. Click "Roles" on the left hand side menu
+3. Click the role lambda is running with 
+4. Here it is
+""", report_path)
         else:
             add_to_output("""{}
-        Something has gone very wrong, please check the Cloudwatch Logs Stream for further details""".format(msg),
+Something has gone very wrong, please check the Cloudwatch Logs Stream for further details""".format(msg),
                           report_path)
     else:
         if "InvalidAccessKeyId" in msg and "does not exist" in msg:
-            add_to_output("The Access Key ID you provided does not exist")
-            add_to_output("Please, make sure you give me the right credentials")
+            add_to_output("The Access Key ID you provided does not exist", report_path)
+            add_to_output("Please, make sure you give me the right credentials", report_path)
         elif "SignatureDoesNotMatch" in msg:
-            add_to_output("The Secret Access Key you provided is incorrect")
-            add_to_output("Please, make sure you give me the right credentials")
+            add_to_output("The Secret Access Key you provided is incorrect", report_path)
+            add_to_output("Please, make sure you give me the right credentials", report_path)
         elif "AccessDenied" in msg:
             add_to_output("""Access Denied
-        I need permission to access S3
-        Check if the IAM user at least has AmazonS3ReadOnlyAccess policy attached
+I need permission to access S3
+Check if the IAM user at least has AmazonS3ReadOnlyAccess policy attached
 
-        To find the list of policies attached to your user, perform these steps:
-        1. Go to IAM (https://console.aws.amazon.com/iam/home)
-        2. Click "Users" on the left hand side menu
-        3. Click the user, whose credentials you give me
-        4. Here it is
-        """)
+To find the list of policies attached to your user, perform these steps:
+1. Go to IAM (https://console.aws.amazon.com/iam/home)
+2. Click "Users" on the left hand side menu
+3. Click the user, whose credentials you give me
+4. Here it is
+        """, report_path)
         else:
             add_to_output("""{}
-        Check your credentials in ~/.aws/credentials file
+Check your credentials in ~/.aws/credentials file
 
-        The user also has to have programmatic access enabled
-        If you didn't enable it(when you created the account), then:
-        1. Click the user
-        2. Go to "Security Credentials" tab
-        3. Click "Create Access key"
-        4. Use these credentials""".format(msg))
+The user also has to have programmatic access enabled
+If you didn't enable it(when you created the account), then:
+1. Click the user
+2. Go to "Security Credentials" tab
+3. Click "Create Access key"
+4. Use these credentials""".format(msg), report_path)
 
 
 def main():
