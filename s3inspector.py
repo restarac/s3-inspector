@@ -91,7 +91,7 @@ def get_location(bucket_name, s3_client):
     loc = s3_client.get_bucket_location(
             Bucket=bucket_name)["LocationConstraint"]
     if loc is None:
-        loc = "None(probably North Virginia)"
+        loc = "None(probably Northern Virginia)"
     return loc
 
 
