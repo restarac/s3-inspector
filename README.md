@@ -1,5 +1,5 @@
 <p align="center">
-   <img alt="S3 Inspector" src="https://github.com/kromtech/s3-inspector/blob/logo/logo.png" width="400"/>
+   <img alt="S3 Inspector" src="https://github.com/clario-tech/s3-inspector/blob/logo/logo.png" width="400"/>
 </p>
 
 Tool to check AWS S3 bucket permissions.
