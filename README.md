@@ -54,7 +54,7 @@ Enter your AWS profile name [default]:
 `python s3inspector.py`
 
 ## Report example
-![Sample report screenshot](https://github.com/kromtech/s3-inspector/blob/screenshot/samplerun.png "Sample report screenshot")
+![Sample report screenshot](https://github.com/clario-tech/s3-inspector/blob/screenshot/samplerun.png "Sample report screenshot")
 
 
 ## Usage as Lambda function
