@@ -41,9 +41,9 @@ def check_acl(acl):
     return public_indicator, dangerous_grants
 
 
-def get_location(bucket_name, s3_client):
+def show_location_bucket(bucket_name, s3_client, report_path=None):
     """
-    Returns the bucket location.
+    Show the bucket location in the console.
 
     :param bucket_name: Name of the bucket.
     :param s3_client: s3_client instance.
@@ -53,6 +53,8 @@ def get_location(bucket_name, s3_client):
             Bucket=bucket_name)["LocationConstraint"]
     if loc is None:
         loc = "None(probably Northern Virginia)"
+
+    add_to_output("Location: {}".format(loc), report_path)
     return loc
 
 
@@ -92,9 +94,10 @@ def add_to_output(msg, path=None):
     """
     if path is not None:
         with open(path, "a") as f:
-            f.write(msg + '\n')
-    else:
-        termcolor.cprint(msg)
+            text = re.sub('\033\\[\d+m', '', msg)
+            f.write(text + '\n')
+    # else:
+    termcolor.cprint(msg)
 
 def analyze_public_bucket(bucket, grants, report_path=None):
     """
@@ -109,14 +112,9 @@ def analyze_public_bucket(bucket, grants, report_path=None):
             permissions = grants[grant]
             perm_to_print = [EXPLAINED[perm]
                             for perm in permissions]
-            if report_path:
-                msg = "Permission: {} by {}".format(" & ".join(perm_to_print),
-                                                    (GROUPS_TO_CHECK[grant]))
-            else:
-                msg = "Permission: {} by {}".format(
-                        termcolor.colored(
-                                " & ".join(perm_to_print), "red"),
-                        termcolor.colored(GROUPS_TO_CHECK[grant], "red"))
+            msg = "Permission: {} by {}".format(
+                    termcolor.colored(" & ".join(perm_to_print), "red"),
+                    termcolor.colored(GROUPS_TO_CHECK[grant], "red"))
             add_to_output(msg, report_path)
     urls = scan_bucket_urls(bucket.name)
     add_to_output("URLs:", report_path)
@@ -126,24 +124,21 @@ def analyze_public_bucket(bucket, grants, report_path=None):
         add_to_output("Nothing found", report_path)
 
 
-def show_bucket_info(bucket, s3_client, bucket_ind, bucket_ind_color, report_path=None):
+def show_bucket_info(bucket, bucket_ind, bucket_ind_color, report_path=None):
     """
     Analyses what and how the bucket is public. Sends results to defined output.
 
     :param bucket: s3 bucket resource instance.
-    :param s3_client: s3 client instance.
     :param bucket_ind: A phrase to show in the output.
     :param bucket_ind_color: The color of the phrase.
     :param report_path: Path to lambda report file.
     """
-    location = get_location(bucket.name, s3_client)
     add_to_output(SEP, report_path)
     bucket_line = termcolor.colored(bucket.name, "blue", attrs=["bold"])
     public_ind = termcolor.colored(bucket_ind, bucket_ind_color, attrs=["bold"])
 
     msg = "Bucket {}: {}".format(bucket_line, public_ind)
     add_to_output(msg, report_path)
-    add_to_output("Location: {}".format(location), report_path)
 
 
 def analyze_buckets(s3, s3_client, report_path=None):
@@ -164,29 +159,46 @@ def analyze_buckets(s3, s3_client, report_path=None):
             public, grants = check_acl(bucket_acl)
 
             if public:
-                show_bucket_info(bucket, s3_client, "PUBLIC!", "red")
+                show_bucket_info(bucket, "PUBLIC!", "red", report_path)
+                show_location_bucket(bucket.name, s3_client, report_path)
                 analyze_public_bucket(bucket, grants, report_path)
             else:
-                show_bucket_info(bucket, s3_client, "Not public", "green")
+                show_bucket_info(bucket, "Not public", "green", report_path)
+                show_location_bucket(bucket.name, s3_client, report_path)
 
         except botocore.exceptions.ClientError as e:
-            show_bucket_info(bucket, s3_client, "ACCESS ERROR", "red")
+            show_bucket_info(bucket, "ACCESS ERROR", "red", report_path)
             add_to_output("Access Denied. I need a READ permission to access this S3 bucket.", report_path)
-        buckets_count += 1
-    if buckets_count:
+        buckets_count = 1
+    if not buckets_count:
         add_to_output("No buckets found", report_path)
         msg = termcolor.colored("You are safe", "green")
         add_to_output(msg, report_path)
 
-import boto3
-import botocore
-import termcolor
-import requests
+
+def install_and_import(pkg):
+    """
+    Installs latest versions of required packages.
+    :param pkg: Package name.
+    """
+    import importlib
+    try:
+        importlib.import_module(pkg)
+    except ImportError:
+        import pip
+        pip.main(["install", pkg])
+    finally:
+        globals()[pkg] = importlib.import_module(pkg)
+
 
 def main():
+    packages = ["boto3", "botocore", "termcolor", "requests"]
+    for package in packages:
+        install_and_import(package)
+
     s3 = boto3.resource("s3")
     s3_client = boto3.client("s3")
-    analyze_buckets(s3, s3_client)
+    analyze_buckets(s3, s3_client, "s3_result.txt")
 
 
 if __name__ == "__main__":
