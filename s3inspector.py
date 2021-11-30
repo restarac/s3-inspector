@@ -32,23 +32,8 @@ def get_s3_obj(is_lambda=False):
     :param is_lambda: If True - defines that code has been launched as lambda.
     :return: s3 resource and client instances.
     """
-    if is_lambda:
-        s3 = boto3.resource("s3")
-        s3_client = boto3.client("s3")
-    else:
-        if os.path.exists(os.path.join(expanduser("~"), ".aws", "credentials")) or os.path.exists(
-                os.path.join(expanduser("~"), ".aws", "config")):
-            profile_name = raw_input("Enter your AWS profile name [default]: ") or "default"
-            session = boto3.Session(profile_name=profile_name)
-            s3 = session.resource("s3")
-            s3_client = session.client("s3")
-        else:
-            access_key = raw_input("Enter your AWS access key ID: ")
-            secret_key = raw_input("Enter your AWS secret key: ")
-            s3 = boto3.resource("s3", aws_access_key_id=access_key,
-                                aws_secret_access_key=secret_key)
-            s3_client = boto3.client("s3", aws_access_key_id=access_key,
-                                     aws_secret_access_key=secret_key)
+    s3 = boto3.resource("s3")
+    s3_client = boto3.client("s3")
     return s3, s3_client
 
 
@@ -138,7 +123,7 @@ def scan_bucket_urls(bucket_name):
     return access_urls
 
 
-def add_to_output(msg, path):
+def add_to_output(msg, path=None):
     """
     Displays msg or writes it to file.
 
@@ -161,25 +146,19 @@ def analyze_buckets(s3, s3_client, report_path=None):
     :param report_path: Path to lambda report file.
     """
     buckets = s3.buckets.all()
-    try:
-        bucketcount = 0
+    buckets_count = 0
 
-        for bucket in buckets:
+    for bucket in buckets:
+        try:
             location = get_location(bucket.name, s3_client)
             add_to_output(SEP, report_path)
             bucket_acl = bucket.Acl()
             public, grants = check_acl(bucket_acl)
 
             if public:
-                if report_path:
-                    msg = "Bucket {}: {}".format(bucket.name, "PUBLIC!")
-                else:
-                    bucket_line = termcolor.colored(
-                            bucket.name, "blue", attrs=["bold"])
-                    public_ind = termcolor.colored(
-                            "PUBLIC!", "red", attrs=["bold"])
-                    msg = "Bucket {}: {}".format(
-                            bucket_line, public_ind)
+                bucket_line = termcolor.colored(bucket.name, "blue", attrs=["bold"])
+                public_ind = termcolor.colored("PUBLIC!", "red", attrs=["bold"])
+                msg = "Bucket {}: {}".format(bucket_line, public_ind)
                 add_to_output(msg, report_path)
                 add_to_output("Location: {}".format(location), report_path)
 
@@ -204,50 +183,23 @@ def analyze_buckets(s3, s3_client, report_path=None):
                 else:
                     add_to_output("Nothing found", report_path)
             else:
-                if report_path:
-                    msg = "Bucket {}: {}".format(bucket.name, "Not public")
-                else:
-                    bucket_line = termcolor.colored(
-                            bucket.name, "blue", attrs=["bold"])
-                    public_ind = termcolor.colored(
-                            "Not public", "green", attrs=["bold"])
-                    msg = "Bucket {}: {}".format(
-                            bucket_line, public_ind)
+                bucket_line = termcolor.colored(bucket.name, "blue", attrs=["bold"])
+                public_ind = termcolor.colored("Not public", "green", attrs=["bold"])
+                msg = "Bucket {}: {}".format(bucket_line, public_ind)
                 add_to_output(msg, report_path)
                 add_to_output("Location: {}".format(location), report_path)
-            bucketcount += 1
-        if not bucketcount:
-            add_to_output("No buckets found", report_path)
-            if report_path:
-                msg = "You are safe"
-            else:
-                msg = termcolor.colored("You are safe", "green")
+        except botocore.exceptions.ClientError as e:
+            add_to_output(SEP, report_path)
+            bucket_line = termcolor.colored(bucket.name, "blue", attrs=["bold"])
+            public_ind = termcolor.colored("ACCESS ERROR", "red", attrs=["bold"])
+            msg = "Bucket {}: {}".format(bucket_line, public_ind)
             add_to_output(msg, report_path)
-    except botocore.exceptions.ClientError as e:
-        resolve_exception(e, report_path)
-
-
-def lambda_handler(event, context):
-    """
-    Checks buckets permissions and sends report.
-    Will be invoked only by AWS Lambda service.
-
-    :param event: Not used.
-    :param context: Not used.
-    """
-    import boto3
-    import botocore
-    globals()['boto3'] = boto3
-    globals()['botocore'] = botocore
-    globals()['requests'] = botocore.vendored.requests
-
-    report_path = "/tmp/report.txt"
-    tidy(report_path)
-    s3, s3_client = get_s3_obj(is_lambda=True)
-    analyze_buckets(s3, s3_client, report_path)
-    send_report(report_path)
-    tidy(report_path)
-
+            add_to_output("""Access Denied. I need a READ permission to access this S3 bucket.""", report_path)
+        buckets_count += 1
+    if buckets_count:
+        add_to_output("No buckets found")
+        msg = termcolor.colored("You are safe", "green")
+        add_to_output(msg, report_path)
 
 def send_report(path):
     """
@@ -266,59 +218,32 @@ def send_report(path):
         MessageStructure="string"
     )
 
+# def resolve_exception(exception, report_path=None):
+#     """
+#     Handles exceptions that appears during bucket check run.
 
-def resolve_exception(exception, report_path):
-    """
-    Handles exceptions that appears during bucket check run.
+#     :param exception: Exception instance.
+#     :param report_path: Path to report path.
+#     """
+#     msg = str(exception)
+#     if "InvalidAccessKeyId" in msg and "does not exist" in msg:
+#         add_to_output("The Access Key ID you provided does not exist", report_path)
+#         add_to_output("Please, make sure you give me the right credentials", report_path)
+#     elif "SignatureDoesNotMatch" in msg:
+#         add_to_output("The Secret Access Key you provided is incorrect", report_path)
+#         add_to_output("Please, make sure you give me the right credentials", report_path)
+#     elif "AccessDenied" in msg:
+#         add_to_output("""Access Denied. I need permission to access S3.""", report_path)
+#     else:
+#         add_to_output("""{}
+# Check your credentials in ~/.aws/credentials file
 
-    :param exception: Exception instance.
-    :param report_path: Path to report path.
-    """
-    msg = str(exception)
-    if report_path:
-        if "AccessDenied" in msg:
-            add_to_output("""Access Denied
-I need permission to access S3
-Check if the Lambda Execution Policy at least has AmazonS3ReadOnlyAccess, SNS Publish & Lambda Execution policies attached
-
-To find the list of policies attached to your user, perform these steps:
-1. Go to IAM (https://console.aws.amazon.com/iam/home)
-2. Click "Roles" on the left hand side menu
-3. Click the role lambda is running with 
-4. Here it is
-""", report_path)
-        else:
-            add_to_output("""{}
-Something has gone very wrong, please check the Cloudwatch Logs Stream for further details""".format(msg),
-                          report_path)
-    else:
-        if "InvalidAccessKeyId" in msg and "does not exist" in msg:
-            add_to_output("The Access Key ID you provided does not exist", report_path)
-            add_to_output("Please, make sure you give me the right credentials", report_path)
-        elif "SignatureDoesNotMatch" in msg:
-            add_to_output("The Secret Access Key you provided is incorrect", report_path)
-            add_to_output("Please, make sure you give me the right credentials", report_path)
-        elif "AccessDenied" in msg:
-            add_to_output("""Access Denied
-I need permission to access S3
-Check if the IAM user at least has AmazonS3ReadOnlyAccess policy attached
-
-To find the list of policies attached to your user, perform these steps:
-1. Go to IAM (https://console.aws.amazon.com/iam/home)
-2. Click "Users" on the left hand side menu
-3. Click the user, whose credentials you give me
-4. Here it is
-        """, report_path)
-        else:
-            add_to_output("""{}
-Check your credentials in ~/.aws/credentials file
-
-The user also has to have programmatic access enabled
-If you didn't enable it(when you created the account), then:
-1. Click the user
-2. Go to "Security Credentials" tab
-3. Click "Create Access key"
-4. Use these credentials""".format(msg), report_path)
+# The user also has to have programmatic access enabled
+# If you didn't enable it(when you created the account), then:
+# 1. Click the user
+# 2. Go to "Security Credentials" tab
+# 3. Click "Create Access key"
+# 4. Use these credentials""".format(msg), report_path)
 
 
 def main():
@@ -333,4 +258,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
