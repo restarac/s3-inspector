@@ -18,17 +18,18 @@ This is a fork from https://github.com/clario-tech/s3-inspector created to work 
 ## Prerequisites
 **Compatible** with Linux, MacOS and Windows, python 3.
 
-### (Recomended) Use AWS environment variables
+## (Recommended) Use AWS environment variables
  - **Set AWS environment variables**
+   - Optionally you can set the AWS_SESSION_TOKEN
 ```
 export AWS_ACCESS_KEY_ID="ASIA...NOPJ"
 export AWS_SECRET_ACCESS_KEY="Gdd...icc"
-```
-Optionally you can set
-```
 export AWS_SESSION_TOKEN="IQoJb3JpZ2luX2Vj.....QHZDsPHxftf0NE="
 ```
- - After that run the script in the same shell you set this envs
+ - run the script in the same shell you set the envs before
+```
+python s3inspector.py
+```
 
 ### Use existing configured IAM User
  - **use your existing credentials or profile** if you have a file `~/.aws/credentials` like this:
@@ -46,7 +47,7 @@ python s3inspector.py
 Enter your AWS profile name [default]:
 ```
 
-### Create a new IAM User
+#### Create a new IAM User
  - **Create IAM user with AmazonS3ReadOnly policy attached**
    - Go to IAM (https://console.aws.amazon.com/iam/home)
    - Click "Users" on the left hand side menu
